@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory Tracker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0a18; color: #f0ede8; font-family: system-ui, -apple-system, sans-serif; }
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
+    select option { background: #1a1a2e; color: #f0ede8; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #ffffff22; border-radius: 99px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+const { useState, useRef, useCallback } = React;
+const CATEGORIES = ["Electronics", "Food & Drink", "Office", "Clothing", "Tools", "Other"];
+const initialLocations = [
+  { id: "A", name: "Warehouse A" },
+  { id: "B", name: "Warehouse B" }
+];
+const initialItems = [
+  { id: 1, name: "Wireless Headphones", category: "Electronics", image: null, low: 5, stock: { A: 14, B: 3 } },
+  { id: 2, name: "Coffee Beans (1kg)", category: "Food & Drink", image: null, low: 10, stock: { A: 3, B: 20 } },
+  { id: 3, name: "Desk Lamp", category: "Office", image: null, low: 4, stock: { A: 8, B: 5 } }
+];
+const inputStyle = {
+  background: "#ffffff0a",
+  border: "1px solid #ffffff18",
+  borderRadius: 10,
+  padding: "10px 14px",
+  color: "#f0ede8",
+  fontSize: 14,
+  outline: "none",
+  width: "100%",
+  fontFamily: "inherit",
+  boxSizing: "border-box"
+};
+const labelStyle = { display: "flex", flexDirection: "column", gap: 6, fontSize: 12, color: "#888", letterSpacing: 0.5 };
+const btnStyle = {
+  border: "none",
+  borderRadius: 12,
+  padding: "12px 20px",
+  cursor: "pointer",
+  fontFamily: "inherit",
+  fontWeight: 700,
+  fontSize: 13,
+  transition: "all 0.15s"
+};
+const LOC_COLORS = { A: "#6c63ff", B: "#f59e0b" };
+function QuantityBadge({ qty, low }) {
+  const status = qty === 0 ? "out" : qty <= low ? "low" : "ok";
+  const colors = { out: "#ff3b30", low: "#ff9500", ok: "#34c759" };
+  return /* @__PURE__ */ React.createElement("span", { style: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    background: colors[status] + "22",
+    color: colors[status],
+    border: `1px solid ${colors[status]}44`,
+    borderRadius: 99,
+    padding: "2px 10px",
+    fontSize: 12,
+    fontWeight: 700,
+    fontFamily: "monospace"
+  } }, /* @__PURE__ */ React.createElement("span", { style: { width: 6, height: 6, borderRadius: "50%", background: colors[status], display: "inline-block" } }), qty);
+}
+function ImageUpload({ image, onChange }) {
+  const ref = useRef();
+  const handleFile = useCallback((file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => onChange(ev.target.result);
+    reader.readAsDataURL(file);
+  }, [onChange]);
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      onClick: () => ref.current.click(),
+      onDrop: (e) => {
+        var _a, _b;
+        e.preventDefault();
+        handleFile((_b = (_a = e.dataTransfer) == null ? void 0 : _a.files) == null ? void 0 : _b[0]);
+      },
+      onDragOver: (e) => e.preventDefault(),
+      style: {
+        width: 110,
+        height: 110,
+        borderRadius: 16,
+        cursor: "pointer",
+        flexShrink: 0,
+        background: image ? "transparent" : "#1a1a2e",
+        border: image ? "none" : "2px dashed #ffffff22",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden"
+      }
+    },
+    image ? /* @__PURE__ */ React.createElement("img", { src: image, alt: "", style: { width: "100%", height: "100%", objectFit: "cover" } }) : /* @__PURE__ */ React.createElement("svg", { width: "22", height: "22", fill: "none", stroke: "#ffffff44", strokeWidth: "1.5", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("rect", { x: "3", y: "3", width: "18", height: "18", rx: "3" }), /* @__PURE__ */ React.createElement("circle", { cx: "8.5", cy: "8.5", r: "1.5" }), /* @__PURE__ */ React.createElement("path", { d: "M21 15l-5-5L5 21" })),
+    /* @__PURE__ */ React.createElement("input", { ref, type: "file", accept: "image/*", style: { display: "none" }, onChange: (e) => {
+      var _a;
+      return handleFile((_a = e.target.files) == null ? void 0 : _a[0]);
+    } })
+  );
+}
+function EditableTabName({ loc, color, onRename }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(loc.name);
+  const commit = () => {
+    if (val.trim()) onRename(loc.id, val.trim());
+    setEditing(false);
+  };
+  return editing ? /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      autoFocus: true,
+      value: val,
+      onChange: (e) => setVal(e.target.value),
+      onBlur: commit,
+      onKeyDown: (e) => e.key === "Enter" && commit(),
+      style: __spreadProps(__spreadValues({}, inputStyle), { padding: "4px 8px", fontSize: 14, width: 130, borderColor: color + "99" })
+    }
+  ) : /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 5 } }, loc.name, /* @__PURE__ */ React.createElement(
+    "span",
+    {
+      onClick: (e) => {
+        e.stopPropagation();
+        setEditing(true);
+      },
+      title: "Rename",
+      style: { cursor: "pointer", opacity: 0.5, display: "flex", alignItems: "center" }
+    },
+    /* @__PURE__ */ React.createElement("svg", { width: "11", height: "11", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("path", { d: "M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" }), /* @__PURE__ */ React.createElement("path", { d: "M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" }))
+  ));
+}
+function ItemModal({ item, locations, onSave, onClose }) {
+  const initStock = locations.reduce((acc, l) => {
+    var _a, _b;
+    return __spreadProps(__spreadValues({}, acc), { [l.id]: (_b = (_a = item == null ? void 0 : item.stock) == null ? void 0 : _a[l.id]) != null ? _b : 0 });
+  }, {});
+  const [form, setForm] = useState(item ? __spreadProps(__spreadValues({}, item), { stock: __spreadValues({}, initStock) }) : { name: "", category: "Electronics", image: null, low: 5, stock: initStock });
+  const set = (k, v) => setForm((f) => __spreadProps(__spreadValues({}, f), { [k]: v }));
+  return /* @__PURE__ */ React.createElement("div", { style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }, onClick: onClose }, /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "#10101e", border: "1px solid #ffffff18", borderRadius: 24, padding: 32, width: "100%", maxWidth: 460, boxShadow: "0 40px 80px rgba(0,0,0,0.6)" } }, /* @__PURE__ */ React.createElement("h2", { style: { margin: "0 0 24px", fontSize: 22, color: "#f0ede8" } }, item ? "Edit Item" : "New Item"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 16, marginBottom: 18 } }, /* @__PURE__ */ React.createElement(ImageUpload, { image: form.image, onChange: (v) => set("image", v) }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("input", { value: form.name, onChange: (e) => set("name", e.target.value), placeholder: "Item name\u2026", style: inputStyle }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("input", { list: "cat-list", value: form.category, onChange: (e) => set("category", e.target.value), placeholder: "Category\u2026", style: inputStyle }), /* @__PURE__ */ React.createElement("datalist", { id: "cat-list" }, CATEGORIES.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c })))))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#888", marginBottom: 10, letterSpacing: 0.5 } }, "STOCK PER LOCATION"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, locations.map((loc) => /* @__PURE__ */ React.createElement("label", { key: loc.id, style: labelStyle }, /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: LOC_COLORS[loc.id] || "#aaa", display: "inline-block" } }), loc.name), /* @__PURE__ */ React.createElement("input", { type: "number", min: 0, value: form.stock[loc.id], onChange: (e) => set("stock", __spreadProps(__spreadValues({}, form.stock), { [loc.id]: +e.target.value })), style: inputStyle }))))), /* @__PURE__ */ React.createElement("label", { style: __spreadProps(__spreadValues({}, labelStyle), { marginBottom: 24 }) }, /* @__PURE__ */ React.createElement("span", null, "Low stock alert (total)"), /* @__PURE__ */ React.createElement("input", { type: "number", value: form.low, min: 0, onChange: (e) => set("low", +e.target.value), style: inputStyle })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("button", { onClick: onClose, style: __spreadProps(__spreadValues({}, btnStyle), { background: "#ffffff0f", color: "#aaa", flex: 1 }) }, "Cancel"), /* @__PURE__ */ React.createElement("button", { onClick: () => {
+    if (form.name) onSave(form);
+  }, style: __spreadProps(__spreadValues({}, btnStyle), { background: "linear-gradient(135deg,#6c63ff,#a78bfa)", color: "#fff", flex: 2 }) }, "Save Item"))));
+}
+function TransferModal({ item, locations, defaultFrom, onTransfer, onClose }) {
+  var _a, _b, _c, _d;
+  const otherLoc = (_b = (_a = locations.find((l) => l.id !== defaultFrom)) == null ? void 0 : _a.id) != null ? _b : locations[1].id;
+  const [from, setFrom] = useState(defaultFrom != null ? defaultFrom : locations[0].id);
+  const [to, setTo] = useState(otherLoc);
+  const [qty, setQty] = useState(1);
+  const [error, setError] = useState("");
+  const fromLoc = locations.find((l) => l.id === from);
+  const available = (_c = item.stock[from]) != null ? _c : 0;
+  const handleSwap = () => {
+    setFrom(to);
+    setTo(from);
+    setError("");
+  };
+  const handleTransfer = () => {
+    if (from === to) return setError("Source and destination must differ.");
+    if (qty <= 0) return setError("Quantity must be at least 1.");
+    if (qty > available) return setError(`Only ${available} units available in ${fromLoc.name}.`);
+    onTransfer(item.id, from, to, qty);
+  };
+  return /* @__PURE__ */ React.createElement("div", { style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }, onClick: onClose }, /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "#10101e", border: "1px solid #ffffff18", borderRadius: 24, padding: 32, width: "100%", maxWidth: 420, boxShadow: "0 40px 80px rgba(0,0,0,0.6)" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#f59e0b", letterSpacing: 3, textTransform: "uppercase", marginBottom: 6, fontWeight: 600 } }, "Transfer Stock"), /* @__PURE__ */ React.createElement("h2", { style: { margin: "0 0 4px", fontSize: 20, color: "#f0ede8" } }, item.name), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#555", marginBottom: 24 } }, item.category), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#888", marginBottom: 6 } }, "FROM"), /* @__PURE__ */ React.createElement("select", { value: from, onChange: (e) => {
+    setFrom(e.target.value);
+    setError("");
+  }, style: __spreadProps(__spreadValues({}, inputStyle), { cursor: "pointer" }) }, locations.map((l) => /* @__PURE__ */ React.createElement("option", { key: l.id, value: l.id, style: { background: "#1a1a2e" } }, l.name))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#555", marginTop: 6 } }, "Available: ", /* @__PURE__ */ React.createElement("span", { style: { color: LOC_COLORS[from] || "#aaa", fontWeight: 700 } }, available))), /* @__PURE__ */ React.createElement("button", { onClick: handleSwap, style: { width: 38, height: 38, borderRadius: 10, border: "1px solid #ffffff18", background: "#ffffff0a", color: "#fff", cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 22 } }, /* @__PURE__ */ React.createElement("svg", { width: "16", height: "16", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("path", { d: "M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" }))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#888", marginBottom: 6 } }, "TO"), /* @__PURE__ */ React.createElement("select", { value: to, onChange: (e) => {
+    setTo(e.target.value);
+    setError("");
+  }, style: __spreadProps(__spreadValues({}, inputStyle), { cursor: "pointer" }) }, locations.map((l) => /* @__PURE__ */ React.createElement("option", { key: l.id, value: l.id, style: { background: "#1a1a2e" } }, l.name))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#555", marginTop: 6 } }, "Current: ", /* @__PURE__ */ React.createElement("span", { style: { color: LOC_COLORS[to] || "#aaa", fontWeight: 700 } }, (_d = item.stock[to]) != null ? _d : 0)))), /* @__PURE__ */ React.createElement("label", { style: __spreadProps(__spreadValues({}, labelStyle), { marginBottom: 16 }) }, /* @__PURE__ */ React.createElement("span", null, "Quantity to transfer"), /* @__PURE__ */ React.createElement("input", { type: "number", min: 1, max: available, value: qty, onChange: (e) => {
+    setQty(+e.target.value);
+    setError("");
+  }, style: inputStyle })), error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: "#ff3b30", marginBottom: 14, background: "#ff3b3011", borderRadius: 8, padding: "8px 12px", border: "1px solid #ff3b3033" } }, error), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 20 } }, [from, to].map((locId) => {
+    var _a2, _b2;
+    const loc = locations.find((l) => l.id === locId);
+    const after = locId === from ? Math.max(0, ((_a2 = item.stock[from]) != null ? _a2 : 0) - qty) : ((_b2 = item.stock[to]) != null ? _b2 : 0) + qty;
+    const color = LOC_COLORS[locId] || "#aaa";
+    return /* @__PURE__ */ React.createElement("div", { key: locId, style: { flex: 1, background: color + "0d", borderRadius: 12, padding: "10px 14px", border: `1px solid ${color}33` } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color, fontWeight: 700, marginBottom: 4 } }, loc.name), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontSize: 20, fontWeight: 700 } }, after), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#555" } }, "after transfer"));
+  })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("button", { onClick: onClose, style: __spreadProps(__spreadValues({}, btnStyle), { background: "#ffffff0f", color: "#aaa", flex: 1 }) }, "Cancel"), /* @__PURE__ */ React.createElement("button", { onClick: handleTransfer, style: __spreadProps(__spreadValues({}, btnStyle), { background: "linear-gradient(135deg,#f59e0b,#fbbf24)", color: "#000", flex: 2 }) }, "Confirm Transfer"))));
+}
+function TransferLogView({ log, locations, items, onClear }) {
+  const toISOLocal = (d) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+  const startOfDay = (d) => {
+    const n = new Date(d);
+    n.setHours(0, 0, 0, 0);
+    return n;
+  };
+  const endOfDay = (d) => {
+    const n = new Date(d);
+    n.setHours(23, 59, 59, 999);
+    return n;
+  };
+  const [dtFrom, setDtFrom] = useState("");
+  const [dtTo, setDtTo] = useState("");
+  const [preset, setPreset] = useState("all");
+  const applyPreset = (p) => {
+    setPreset(p);
+    const now = /* @__PURE__ */ new Date();
+    if (p === "today") {
+      setDtFrom(toISOLocal(startOfDay(now)));
+      setDtTo(toISOLocal(endOfDay(now)));
+    } else if (p === "week") {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 6);
+      setDtFrom(toISOLocal(startOfDay(start)));
+      setDtTo(toISOLocal(endOfDay(now)));
+    } else if (p === "month") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      setDtFrom(toISOLocal(startOfDay(start)));
+      setDtTo(toISOLocal(endOfDay(now)));
+    } else {
+      setDtFrom("");
+      setDtTo("");
+    }
+  };
+  const filtered = [...log].reverse().filter((entry) => {
+    if (!dtFrom && !dtTo) return true;
+    const ts = entry.timestamp;
+    if (dtFrom && ts < new Date(dtFrom).getTime()) return false;
+    if (dtTo && ts > new Date(dtTo).getTime()) return false;
+    return true;
+  });
+  const totalQty = filtered.reduce((s, e) => s + e.qty, 0);
+  const fmt = (ts) => {
+    const d = new Date(ts);
+    return d.toLocaleDateString(void 0, { month: "short", day: "numeric", year: "numeric" }) + "  " + d.toLocaleTimeString(void 0, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  };
+  const PRESETS = [
+    { id: "all", label: "All time" },
+    { id: "today", label: "Today" },
+    { id: "week", label: "Last 7 days" },
+    { id: "month", label: "This month" },
+    { id: "custom", label: "Custom" }
+  ];
+  const dtInputStyle = __spreadProps(__spreadValues({}, inputStyle), { width: "auto", padding: "6px 10px", fontSize: 12, colorScheme: "dark" });
+  return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1e3, margin: "24px auto 60px", padding: "0 32px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#f59e0b", letterSpacing: 3, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 } }, "Audit Trail"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 22, fontWeight: 700 } }, "Transfer Log", log.length > 0 && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: 10, fontSize: 13, fontFamily: "monospace", color: "#555", fontWeight: 400 } }, log.length, " total entries"))), log.length > 0 && /* @__PURE__ */ React.createElement("button", { onClick: onClear, style: __spreadProps(__spreadValues({}, btnStyle), { background: "#ff3b3011", color: "#ff3b30", padding: "8px 18px", fontSize: 12, border: "1px solid #ff3b3033" }) }, "Clear All")), log.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "80px 0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 48, marginBottom: 14 } }, "\u{1F4CB}"), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontSize: 15, color: "#555" } }, "No transfers recorded yet"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#333", marginTop: 6 } }, "Use the Transfer button on any item to move stock between locations")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { background: "#ffffff06", border: "1px solid #ffffff0e", borderRadius: 18, padding: "16px 20px", marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: preset === "custom" ? 14 : 0 } }, /* @__PURE__ */ React.createElement("svg", { width: "15", height: "15", fill: "none", stroke: "#f59e0b", strokeWidth: "2", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("rect", { x: "3", y: "4", width: "18", height: "18", rx: "2" }), /* @__PURE__ */ React.createElement("path", { d: "M16 2v4M8 2v4M3 10h18" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", flex: 1 } }, PRESETS.map((p) => /* @__PURE__ */ React.createElement("button", { key: p.id, onClick: () => applyPreset(p.id), style: __spreadProps(__spreadValues({}, btnStyle), {
+    padding: "5px 12px",
+    fontSize: 11,
+    borderRadius: 99,
+    background: preset === p.id ? "#f59e0b" : "#ffffff0a",
+    color: preset === p.id ? "#000" : "#666",
+    border: `1px solid ${preset === p.id ? "#f59e0b" : "#ffffff15"}`,
+    fontWeight: preset === p.id ? 700 : 500
+  }) }, p.label))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 16, flexShrink: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontWeight: 700, fontSize: 18, color: "#f59e0b" } }, filtered.length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: 0.5 } }, "Transfers")), /* @__PURE__ */ React.createElement("div", { style: { width: 1, background: "#ffffff0e" } }), /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontWeight: 700, fontSize: 18, color: "#a78bfa" } }, totalQty), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: 0.5 } }, "Units Moved")))), preset === "custom" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", borderTop: "1px solid #ffffff0a", paddingTop: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#888", width: 24, textAlign: "right" } }, "From"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "datetime-local",
+      value: dtFrom,
+      onChange: (e) => {
+        setDtFrom(e.target.value);
+      },
+      style: dtInputStyle
+    }
+  )), /* @__PURE__ */ React.createElement("svg", { width: "16", height: "8", fill: "none", stroke: "#444", strokeWidth: "1.5", viewBox: "0 0 16 8" }, /* @__PURE__ */ React.createElement("path", { d: "M0 4h12M8 1l4 3-4 3", strokeLinecap: "round", strokeLinejoin: "round" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#888", width: 12 } }, "To"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "datetime-local",
+      value: dtTo,
+      onChange: (e) => {
+        setDtTo(e.target.value);
+      },
+      style: dtInputStyle
+    }
+  )), (dtFrom || dtTo) && /* @__PURE__ */ React.createElement("button", { onClick: () => {
+    setDtFrom("");
+    setDtTo("");
+  }, style: __spreadProps(__spreadValues({}, btnStyle), { padding: "5px 10px", fontSize: 11, background: "#ffffff0a", color: "#666", border: "1px solid #ffffff15", borderRadius: 8 }) }, "Reset"), dtFrom && dtTo && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#555", fontFamily: "monospace", marginLeft: 4 } }, Math.round((new Date(dtTo) - new Date(dtFrom)) / 36e5 * 10) / 10, "h window"))), filtered.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "48px 0", color: "#444" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 10 } }, "\u{1F50D}"), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontSize: 13 } }, "No transfers in this range")) : /* @__PURE__ */ React.createElement("div", { style: { border: "1px solid #ffffff0e", borderRadius: 20, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "2fr 1.5fr 2fr 1fr 1.8fr", gap: 16, padding: "12px 20px", background: "#ffffff05", borderBottom: "1px solid #ffffff0e" } }, ["Item", "From", "To", "Qty", "Date & Time"].map((h) => /* @__PURE__ */ React.createElement("div", { key: h, style: { fontSize: 11, color: "#444", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8 } }, h))), filtered.map((entry, i) => {
+    var _a, _b, _c, _d;
+    const item = items.find((it) => it.id === entry.itemId);
+    const fromLoc = locations.find((l) => l.id === entry.from);
+    const toLoc = locations.find((l) => l.id === entry.to);
+    const fromColor = LOC_COLORS[entry.from] || "#aaa";
+    const toColor = LOC_COLORS[entry.to] || "#aaa";
+    return /* @__PURE__ */ React.createElement("div", { key: entry.id, style: {
+      display: "grid",
+      gridTemplateColumns: "2fr 1.5fr 2fr 1fr 1.8fr",
+      gap: 16,
+      padding: "14px 20px",
+      alignItems: "center",
+      borderBottom: i < filtered.length - 1 ? "1px solid #ffffff08" : "none",
+      background: i === 0 && preset === "all" ? "#f59e0b05" : "transparent"
+    } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 36, height: 36, borderRadius: 9, flexShrink: 0, overflow: "hidden", background: "linear-gradient(135deg,#1e1e3a,#2a1a4a)", display: "flex", alignItems: "center", justifyContent: "center" } }, (item == null ? void 0 : item.image) ? /* @__PURE__ */ React.createElement("img", { src: item.image, alt: "", style: { width: "100%", height: "100%", objectFit: "cover" } }) : /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, "\u{1F4E6}")), /* @__PURE__ */ React.createElement("div", { style: { minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, (_a = item == null ? void 0 : item.name) != null ? _a : "Deleted item"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#555", textTransform: "uppercase", letterSpacing: 0.4 } }, (_b = item == null ? void 0 : item.category) != null ? _b : "\u2014"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: fromColor, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: fromColor, fontWeight: 600 } }, (_c = fromLoc == null ? void 0 : fromLoc.name) != null ? _c : entry.from)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement("svg", { width: "14", height: "8", viewBox: "0 0 16 8", fill: "none", stroke: "#333", strokeWidth: "1.5" }, /* @__PURE__ */ React.createElement("path", { d: "M0 4h12M8 1l4 3-4 3", strokeLinecap: "round", strokeLinejoin: "round" })), /* @__PURE__ */ React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: toColor, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: toColor, fontWeight: 600 } }, (_d = toLoc == null ? void 0 : toLoc.name) != null ? _d : entry.to)), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontWeight: 700, fontSize: 16, color: "#f59e0b" } }, "\xD7", entry.qty), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#555", fontFamily: "monospace", lineHeight: 1.6 } }, /* @__PURE__ */ React.createElement("div", { style: { color: "#aaa" } }, new Date(entry.timestamp).toLocaleDateString(void 0, { month: "short", day: "numeric", year: "numeric" })), /* @__PURE__ */ React.createElement("div", { style: { color: "#f59e0b88" } }, new Date(entry.timestamp).toLocaleTimeString(void 0, { hour: "2-digit", minute: "2-digit", second: "2-digit" }))));
+  }))));
+}
+function ReportView({ log, locations, items }) {
+  const toISOLocal = (d) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+  const startOfDay = (d) => {
+    const n = new Date(d);
+    n.setHours(0, 0, 0, 0);
+    return n;
+  };
+  const endOfDay = (d) => {
+    const n = new Date(d);
+    n.setHours(23, 59, 59, 999);
+    return n;
+  };
+  const [dtFrom, setDtFrom] = useState("");
+  const [dtTo, setDtTo] = useState("");
+  const [preset, setPreset] = useState("all");
+  const applyPreset = (p) => {
+    setPreset(p);
+    const now = /* @__PURE__ */ new Date();
+    if (p === "today") {
+      setDtFrom(toISOLocal(startOfDay(now)));
+      setDtTo(toISOLocal(endOfDay(now)));
+    } else if (p === "week") {
+      const s = new Date(now);
+      s.setDate(now.getDate() - 6);
+      setDtFrom(toISOLocal(startOfDay(s)));
+      setDtTo(toISOLocal(endOfDay(now)));
+    } else if (p === "month") {
+      setDtFrom(toISOLocal(startOfDay(new Date(now.getFullYear(), now.getMonth(), 1))));
+      setDtTo(toISOLocal(endOfDay(now)));
+    } else {
+      setDtFrom("");
+      setDtTo("");
+    }
+  };
+  const inRange = (entry) => {
+    if (!dtFrom && !dtTo) return true;
+    if (dtFrom && entry.timestamp < new Date(dtFrom).getTime()) return false;
+    if (dtTo && entry.timestamp > new Date(dtTo).getTime()) return false;
+    return true;
+  };
+  const filteredLog = log.filter(inRange);
+  const summaryMap = {};
+  filteredLog.forEach((entry) => {
+    const key = `${entry.itemId}__${entry.from}__${entry.to}`;
+    if (!summaryMap[key]) summaryMap[key] = { itemId: entry.itemId, from: entry.from, to: entry.to, qty: 0, count: 0 };
+    summaryMap[key].qty += entry.qty;
+    summaryMap[key].count += 1;
+  });
+  const byItem = {};
+  Object.values(summaryMap).forEach((row) => {
+    if (!byItem[row.itemId]) byItem[row.itemId] = { itemId: row.itemId, directions: [], totalQty: 0 };
+    byItem[row.itemId].directions.push(row);
+    byItem[row.itemId].totalQty += row.qty;
+  });
+  const reportRows = Object.values(byItem).sort((a, b) => b.totalQty - a.totalQty);
+  const grandTotal = filteredLog.reduce((s, e) => s + e.qty, 0);
+  const uniqueItems = reportRows.length;
+  const PRESETS = [
+    { id: "all", label: "All time" },
+    { id: "today", label: "Today" },
+    { id: "week", label: "Last 7 days" },
+    { id: "month", label: "This month" },
+    { id: "custom", label: "Custom" }
+  ];
+  const dtInputStyle = __spreadProps(__spreadValues({}, inputStyle), { width: "auto", padding: "6px 10px", fontSize: 12, colorScheme: "dark" });
+  const buildCSV = () => {
+    const rows = [];
+    rows.push(["Item", "Category", "From", "To", "Transfers", "Units Moved", "% of Total"]);
+    reportRows.forEach((row) => {
+      const item = items.find((it) => it.id === row.itemId);
+      const pct = grandTotal > 0 ? (row.totalQty / grandTotal * 100).toFixed(1) : "0.0";
+      row.directions.forEach((dir, i) => {
+        var _a, _b, _c, _d;
+        const fromLoc = locations.find((l) => l.id === dir.from);
+        const toLoc = locations.find((l) => l.id === dir.to);
+        rows.push([
+          i === 0 ? (_a = item == null ? void 0 : item.name) != null ? _a : `Item #${row.itemId}` : "",
+          i === 0 ? (_b = item == null ? void 0 : item.category) != null ? _b : "" : "",
+          (_c = fromLoc == null ? void 0 : fromLoc.name) != null ? _c : dir.from,
+          (_d = toLoc == null ? void 0 : toLoc.name) != null ? _d : dir.to,
+          dir.count,
+          dir.qty,
+          i === 0 ? `${pct}%` : ""
+        ]);
+      });
+      if (row.directions.length > 1) {
+        const pct2 = grandTotal > 0 ? (row.totalQty / grandTotal * 100).toFixed(1) : "0.0";
+        rows.push(["", "", "", "SUBTOTAL", row.directions.reduce((s, d) => s + d.count, 0), row.totalQty, `${pct2}%`]);
+      }
+    });
+    rows.push([]);
+    rows.push(["GRAND TOTAL", "", "", "", filteredLog.length, grandTotal, "100%"]);
+    rows.push([]);
+    rows.push(["Report period", dtFrom ? new Date(dtFrom).toLocaleString() : "All time", dtTo ? new Date(dtTo).toLocaleString() : ""]);
+    rows.push(["Generated", (/* @__PURE__ */ new Date()).toLocaleString()]);
+    return rows.map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+  };
+  const exportCSV = () => {
+    const csv = buildCSV();
+    const filename = `transfer-report-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.csv`;
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(`<html><head><title>${filename}</title></head><body><pre style="font-family:monospace;font-size:13px;white-space:pre">${csv.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre><p style="font-family:sans-serif;color:#888;font-size:12px">Press <b>Ctrl+S</b> (or Cmd+S) to save this file as CSV.</p></body></html>`);
+      win.document.close();
+    }
+  };
+  return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1e3, margin: "24px auto 60px", padding: "0 32px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#34c759", letterSpacing: 3, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 } }, "Analytics"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 22, fontWeight: 700 } }, "Transfer Report"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: "#555", marginTop: 4 } }, "Quantity transferred between locations, summarised by item")), reportRows.length > 0 && /* @__PURE__ */ React.createElement("button", { onClick: exportCSV, style: __spreadProps(__spreadValues({}, btnStyle), {
+    background: "#34c75918",
+    color: "#34c759",
+    padding: "10px 20px",
+    fontSize: 13,
+    border: "1px solid #34c75944",
+    display: "flex",
+    alignItems: "center",
+    gap: 8
+  }) }, /* @__PURE__ */ React.createElement("svg", { width: "14", height: "14", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("path", { d: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" }), /* @__PURE__ */ React.createElement("polyline", { points: "7 10 12 15 17 10" }), /* @__PURE__ */ React.createElement("line", { x1: "12", y1: "15", x2: "12", y2: "3" })), "Export CSV")), /* @__PURE__ */ React.createElement("div", { style: { background: "#ffffff06", border: "1px solid #ffffff0e", borderRadius: 18, padding: "16px 20px", marginBottom: 24 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: preset === "custom" ? 14 : 0 } }, /* @__PURE__ */ React.createElement("svg", { width: "15", height: "15", fill: "none", stroke: "#34c759", strokeWidth: "2", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("rect", { x: "3", y: "4", width: "18", height: "18", rx: "2" }), /* @__PURE__ */ React.createElement("path", { d: "M16 2v4M8 2v4M3 10h18" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", flex: 1 } }, PRESETS.map((p) => /* @__PURE__ */ React.createElement("button", { key: p.id, onClick: () => applyPreset(p.id), style: __spreadProps(__spreadValues({}, btnStyle), {
+    padding: "5px 12px",
+    fontSize: 11,
+    borderRadius: 99,
+    background: preset === p.id ? "#34c759" : "#ffffff0a",
+    color: preset === p.id ? "#000" : "#666",
+    border: `1px solid ${preset === p.id ? "#34c759" : "#ffffff15"}`,
+    fontWeight: preset === p.id ? 700 : 500
+  }) }, p.label))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 16, flexShrink: 0 } }, [
+    { val: uniqueItems, label: "Items", color: "#34c759" },
+    { val: filteredLog.length, label: "Transfers", color: "#f59e0b" },
+    { val: grandTotal, label: "Units", color: "#a78bfa" }
+  ].map((k, i, arr) => /* @__PURE__ */ React.createElement("div", { key: k.label, style: { display: "flex", alignItems: "center", gap: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontWeight: 700, fontSize: 18, color: k.color } }, k.val), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: 0.5 } }, k.label)), i < arr.length - 1 && /* @__PURE__ */ React.createElement("div", { style: { width: 1, height: 32, background: "#ffffff0e" } }))))), preset === "custom" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", borderTop: "1px solid #ffffff0a", paddingTop: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#888", width: 24, textAlign: "right" } }, "From"), /* @__PURE__ */ React.createElement("input", { type: "datetime-local", value: dtFrom, onChange: (e) => setDtFrom(e.target.value), style: dtInputStyle })), /* @__PURE__ */ React.createElement("svg", { width: "16", height: "8", fill: "none", stroke: "#444", strokeWidth: "1.5", viewBox: "0 0 16 8" }, /* @__PURE__ */ React.createElement("path", { d: "M0 4h12M8 1l4 3-4 3", strokeLinecap: "round", strokeLinejoin: "round" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#888", width: 12 } }, "To"), /* @__PURE__ */ React.createElement("input", { type: "datetime-local", value: dtTo, onChange: (e) => setDtTo(e.target.value), style: dtInputStyle })), (dtFrom || dtTo) && /* @__PURE__ */ React.createElement("button", { onClick: () => {
+    setDtFrom("");
+    setDtTo("");
+  }, style: __spreadProps(__spreadValues({}, btnStyle), { padding: "5px 10px", fontSize: 11, background: "#ffffff0a", color: "#666", border: "1px solid #ffffff15", borderRadius: 8 }) }, "Reset"))), log.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "80px 0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 48, marginBottom: 14 } }, "\u{1F4CA}"), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontSize: 15, color: "#555" } }, "No transfer data yet"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#333", marginTop: 6 } }, "Transfer stock between locations to generate a report")) : reportRows.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "48px 0", color: "#444" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 10 } }, "\u{1F50D}"), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontSize: 13 } }, "No transfers in this time range")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "2.5fr 1.5fr 1fr 1fr 1fr", gap: 16, padding: "10px 20px", marginBottom: 2 } }, ["Item", "Direction", "Transfers", "Units Moved", "% of Total"].map((h) => /* @__PURE__ */ React.createElement("div", { key: h, style: { fontSize: 11, color: "#444", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8 } }, h))), /* @__PURE__ */ React.createElement("div", { style: { border: "1px solid #ffffff0e", borderRadius: 20, overflow: "hidden" } }, reportRows.map((row, ri) => {
+    var _a, _b;
+    const item = items.find((it) => it.id === row.itemId);
+    const pct = grandTotal > 0 ? Math.round(row.totalQty / grandTotal * 100) : 0;
+    const barWidth = grandTotal > 0 ? row.totalQty / grandTotal * 100 : 0;
+    return /* @__PURE__ */ React.createElement("div", { key: row.itemId, style: { borderBottom: ri < reportRows.length - 1 ? "1px solid #ffffff08" : "none" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "2.5fr 1.5fr 1fr 1fr 1fr", gap: 16, padding: "16px 20px", alignItems: "start", background: ri % 2 === 0 ? "#ffffff03" : "transparent" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 40, height: 40, borderRadius: 10, flexShrink: 0, overflow: "hidden", background: "linear-gradient(135deg,#1e1e3a,#2a1a4a)", display: "flex", alignItems: "center", justifyContent: "center" } }, (item == null ? void 0 : item.image) ? /* @__PURE__ */ React.createElement("img", { src: item.image, alt: "", style: { width: "100%", height: "100%", objectFit: "cover" } }) : /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, "\u{1F4E6}")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, fontSize: 14 } }, (_a = item == null ? void 0 : item.name) != null ? _a : `Item #${row.itemId}`), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#555", textTransform: "uppercase", letterSpacing: 0.4 } }, (_b = item == null ? void 0 : item.category) != null ? _b : "\u2014"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5 } }, row.directions.map((dir) => {
+      var _a2, _b2;
+      const fromLoc = locations.find((l) => l.id === dir.from);
+      const toLoc = locations.find((l) => l.id === dir.to);
+      const fromColor = LOC_COLORS[dir.from] || "#aaa";
+      const toColor = LOC_COLORS[dir.to] || "#aaa";
+      return /* @__PURE__ */ React.createElement("div", { key: `${dir.from}-${dir.to}`, style: { display: "flex", alignItems: "center", gap: 5, fontSize: 11 } }, /* @__PURE__ */ React.createElement("span", { style: { color: fromColor, fontWeight: 600 } }, (_a2 = fromLoc == null ? void 0 : fromLoc.name) != null ? _a2 : dir.from), /* @__PURE__ */ React.createElement("svg", { width: "12", height: "7", viewBox: "0 0 16 8", fill: "none", stroke: "#444", strokeWidth: "1.5" }, /* @__PURE__ */ React.createElement("path", { d: "M0 4h12M8 1l4 3-4 3", strokeLinecap: "round", strokeLinejoin: "round" })), /* @__PURE__ */ React.createElement("span", { style: { color: toColor, fontWeight: 600 } }, (_b2 = toLoc == null ? void 0 : toLoc.name) != null ? _b2 : dir.to), /* @__PURE__ */ React.createElement("span", { style: { color: "#555", fontFamily: "monospace", marginLeft: 4 } }, "\xD7", dir.qty));
+    })), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontWeight: 700, fontSize: 15, color: "#f59e0b", paddingTop: 2 } }, row.directions.reduce((s, d) => s + d.count, 0)), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontWeight: 700, fontSize: 18, color: "#34c759", paddingTop: 2 } }, row.totalQty), /* @__PURE__ */ React.createElement("div", { style: { paddingTop: 4 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, height: 6, background: "#ffffff0a", borderRadius: 99, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { height: "100%", width: `${barWidth}%`, background: "linear-gradient(90deg,#34c759,#a8e6c0)", borderRadius: 99, transition: "width 0.4s ease" } })), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "monospace", fontSize: 11, color: "#34c759", fontWeight: 700, flexShrink: 0 } }, pct, "%")))));
+  }), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "2.5fr 1.5fr 1fr 1fr 1fr", gap: 16, padding: "14px 20px", background: "#34c75910", borderTop: "1px solid #34c75922" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#34c759" } }, "TOTAL"), /* @__PURE__ */ React.createElement("div", null), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontWeight: 700, fontSize: 15, color: "#f59e0b" } }, filteredLog.length), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontWeight: 700, fontSize: 18, color: "#34c759" } }, grandTotal), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontSize: 11, color: "#34c759", fontWeight: 700 } }, "100%"))), (dtFrom || dtTo) && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14, fontSize: 11, color: "#444", fontFamily: "monospace", textAlign: "right" } }, "Period: ", dtFrom ? new Date(dtFrom).toLocaleString() : "\u2014", " \u2192 ", dtTo ? new Date(dtTo).toLocaleString() : "\u2014")));
+}
+function App() {
+  const [items, setItems] = useState(initialItems);
+  const [locations, setLocations] = useState(initialLocations);
+  const [activeLocTab, setActiveLocTab] = useState("A");
+  const [mainTab, setMainTab] = useState("inventory");
+  const [modal, setModal] = useState(null);
+  const [transferItem, setTransferItem] = useState(null);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("name");
+  const [filterCat, setFilterCat] = useState("All");
+  const [transferLog, setTransferLog] = useState([]);
+  const nextId = useRef(100);
+  const nextLogId = useRef(1);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const resetAllStock = () => {
+    setItems((prev) => prev.map((i) => {
+      const zeroed = Object.fromEntries(Object.keys(i.stock).map((k) => [k, 0]));
+      return __spreadProps(__spreadValues({}, i), { stock: zeroed });
+    }));
+    setConfirmReset(false);
+  };
+  const activeLoc = locations.find((l) => l.id === activeLocTab);
+  const activeColor = LOC_COLORS[activeLocTab] || "#6c63ff";
+  const save = (form) => {
+    if (form.id) setItems((prev) => prev.map((i) => i.id === form.id ? form : i));
+    else setItems((prev) => [...prev, __spreadProps(__spreadValues({}, form), { id: nextId.current++ })]);
+    setModal(null);
+  };
+  const del = (id) => setItems((prev) => prev.filter((i) => i.id !== id));
+  const adjust = (id, locId, delta) => setItems((prev) => prev.map(
+    (i) => {
+      var _a;
+      return i.id === id ? __spreadProps(__spreadValues({}, i), { stock: __spreadProps(__spreadValues({}, i.stock), { [locId]: Math.max(0, ((_a = i.stock[locId]) != null ? _a : 0) + delta) }) }) : i;
+    }
+  ));
+  const transfer = (itemId, from, to, qty) => {
+    setItems((prev) => prev.map((i) => {
+      var _a, _b;
+      if (i.id !== itemId) return i;
+      return __spreadProps(__spreadValues({}, i), { stock: __spreadProps(__spreadValues({}, i.stock), { [from]: ((_a = i.stock[from]) != null ? _a : 0) - qty, [to]: ((_b = i.stock[to]) != null ? _b : 0) + qty }) });
+    }));
+    setTransferLog((prev) => [...prev, { id: nextLogId.current++, itemId, from, to, qty, timestamp: Date.now() }]);
+    setTransferItem(null);
+  };
+  const getLocQty = (item, locId) => {
+    var _a;
+    return (_a = item.stock[locId]) != null ? _a : 0;
+  };
+  const categoryIndex = ["All", ...Array.from(new Set(items.map((i) => i.category))).sort()];
+  const visible = items.filter((i) => filterCat === "All" || i.category === filterCat).filter((i) => i.name.toLowerCase().includes(search.toLowerCase())).sort((a, b) => sort === "name" ? a.name.localeCompare(b.name) : sort === "qty-asc" ? getLocQty(a, activeLocTab) - getLocQty(b, activeLocTab) : getLocQty(b, activeLocTab) - getLocQty(a, activeLocTab));
+  const locTotal = items.reduce((s, i) => s + getLocQty(i, activeLocTab), 0);
+  const locLow = items.filter((i) => {
+    const q = getLocQty(i, activeLocTab);
+    return q > 0 && q <= i.low;
+  }).length;
+  const locOut = items.filter((i) => getLocQty(i, activeLocTab) === 0).length;
+  const bgColor = mainTab === "log" ? "#f59e0b" : mainTab === "report" ? "#34c759" : activeColor;
+  return /* @__PURE__ */ React.createElement("div", { style: {
+    minHeight: "100vh",
+    background: "#0a0a18",
+    fontFamily: "system-ui, sans-serif",
+    color: "#f0ede8",
+    backgroundImage: `radial-gradient(ellipse 80% 60% at 50% -10%, ${bgColor}16 0%, transparent 70%)`
+  } }, /* @__PURE__ */ React.createElement("div", { style: { padding: "36px 32px 0", maxWidth: 1e3, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 28 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: bgColor, letterSpacing: 3, textTransform: "uppercase", marginBottom: 6, fontWeight: 600 } }, "Stock Control"), /* @__PURE__ */ React.createElement("h1", { style: { margin: 0, fontSize: 36, fontWeight: 700, lineHeight: 1.1 } }, "Inventory")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 2, background: "#ffffff08", borderRadius: 12, padding: 3 } }, [
+    { id: "inventory", icon: "M3 7h18M3 12h18M3 17h18", label: "Inventory" },
+    { id: "log", icon: "M9 12h6M9 16h6M9 8h6M5 3h14a2 2 0 012 2v16a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z", label: `Log${transferLog.length > 0 ? ` (${transferLog.length})` : ""}` },
+    { id: "report", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", label: "Report" }
+  ].map((t) => /* @__PURE__ */ React.createElement("button", { key: t.id, onClick: () => setMainTab(t.id), style: __spreadProps(__spreadValues({}, btnStyle), {
+    padding: "8px 16px",
+    fontSize: 12,
+    borderRadius: 10,
+    background: mainTab === t.id ? "#ffffff15" : "transparent",
+    color: mainTab === t.id ? "#f0ede8" : "#555",
+    display: "flex",
+    alignItems: "center",
+    gap: 6
+  }) }, /* @__PURE__ */ React.createElement("svg", { width: "13", height: "13", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("path", { d: t.icon })), t.label))), mainTab === "inventory" && /* @__PURE__ */ React.createElement("button", { onClick: () => setModal("new"), style: __spreadProps(__spreadValues({}, btnStyle), {
+    background: `linear-gradient(135deg,${activeColor},${activeColor}bb)`,
+    color: "#fff",
+    padding: "10px 22px",
+    fontSize: 14,
+    display: "flex",
+    alignItems: "center",
+    gap: 8
+  }) }, /* @__PURE__ */ React.createElement("svg", { width: "15", height: "15", fill: "none", stroke: "currentColor", strokeWidth: "2.5", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("path", { d: "M12 5v14M5 12h14" })), "Add Item"), /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmReset(true), style: __spreadProps(__spreadValues({}, btnStyle), {
+    background: "#ff3b3011",
+    color: "#ff3b30",
+    padding: "10px 16px",
+    fontSize: 12,
+    border: "1px solid #ff3b3033",
+    display: "flex",
+    alignItems: "center",
+    gap: 6
+  }) }, /* @__PURE__ */ React.createElement("svg", { width: "13", height: "13", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" }), /* @__PURE__ */ React.createElement("path", { d: "M3 3v5h5" })), "Reset Stock"))), confirmReset && /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 20 },
+      onClick: () => setConfirmReset(false)
+    },
+    /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "#10101e", border: "1px solid #ff3b3033", borderRadius: 24, padding: 32, width: "100%", maxWidth: 400, boxShadow: "0 40px 80px rgba(0,0,0,0.7)" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 48, height: 48, borderRadius: 16, background: "#ff3b3018", border: "1px solid #ff3b3033", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 } }, /* @__PURE__ */ React.createElement("svg", { width: "22", height: "22", fill: "none", stroke: "#ff3b30", strokeWidth: "2", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" }), /* @__PURE__ */ React.createElement("path", { d: "M3 3v5h5" }))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, marginBottom: 8 } }, "Reset All Stock?"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: "#666", lineHeight: 1.6, marginBottom: 28 } }, "This will set all stock quantities to ", /* @__PURE__ */ React.createElement("span", { style: { color: "#ff3b30", fontWeight: 700 } }, "0"), " across every item and location. This action cannot be undone."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmReset(false), style: __spreadProps(__spreadValues({}, btnStyle), { flex: 1, background: "#ffffff0f", color: "#aaa", border: "1px solid #ffffff18" }) }, "Cancel"), /* @__PURE__ */ React.createElement("button", { onClick: resetAllStock, style: __spreadProps(__spreadValues({}, btnStyle), { flex: 2, background: "linear-gradient(135deg,#ff3b30,#ff6b60)", color: "#fff" }) }, "Yes, Reset All Stock")))
+  ), mainTab === "inventory" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, background: "#ffffff08", borderRadius: 16, padding: 4, width: "fit-content", marginBottom: 24 } }, locations.map((loc) => {
+    const color = LOC_COLORS[loc.id] || "#aaa";
+    const active = activeLocTab === loc.id;
+    return /* @__PURE__ */ React.createElement("button", { key: loc.id, onClick: () => setActiveLocTab(loc.id), style: __spreadProps(__spreadValues({}, btnStyle), {
+      padding: "10px 22px",
+      fontSize: 14,
+      borderRadius: 12,
+      background: active ? color : "transparent",
+      color: active ? "#fff" : "#666",
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      boxShadow: active ? `0 4px 20px ${color}44` : "none"
+    }) }, /* @__PURE__ */ React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: active ? "#fff" : color } }), /* @__PURE__ */ React.createElement(EditableTabName, { loc, color, onRename: renameLocation }));
+  })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, flexWrap: "wrap" } }, [
+    { label: "Units Here", value: locTotal, color: activeColor },
+    { label: "SKUs", value: items.length, color: "#60c8ff" },
+    { label: "Low Stock", value: locLow, color: "#ff9500" },
+    { label: "Out of Stock", value: locOut, color: "#ff3b30" }
+  ].map((s) => /* @__PURE__ */ React.createElement("div", { key: s.label, style: { background: "#ffffff07", border: "1px solid #ffffff12", borderRadius: 16, padding: "14px 22px", flex: "1 1 100px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 28, fontWeight: 700, fontFamily: "monospace", color: s.color } }, s.value), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#666", marginTop: 2 } }, s.label)))))), mainTab === "log" && /* @__PURE__ */ React.createElement(TransferLogView, { log: transferLog, locations, items, onClear: () => setTransferLog([]) }), mainTab === "report" && /* @__PURE__ */ React.createElement(ReportView, { log: transferLog, locations, items }), mainTab === "inventory" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1e3, margin: "20px auto 0", padding: "0 32px", display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "relative", flex: "1 1 180px" } }, /* @__PURE__ */ React.createElement("svg", { style: { position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }, width: "15", height: "15", fill: "none", stroke: "#555", strokeWidth: "2", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("circle", { cx: "11", cy: "11", r: "8" }), /* @__PURE__ */ React.createElement("path", { d: "M21 21l-4.35-4.35" })), /* @__PURE__ */ React.createElement("input", { value: search, onChange: (e) => setSearch(e.target.value), placeholder: "Search items\u2026", style: __spreadProps(__spreadValues({}, inputStyle), { paddingLeft: 36 }) })), /* @__PURE__ */ React.createElement("select", { value: sort, onChange: (e) => setSort(e.target.value), style: __spreadProps(__spreadValues({}, inputStyle), { width: "auto", cursor: "pointer" }) }, /* @__PURE__ */ React.createElement("option", { value: "name" }, "Name A\u2013Z"), /* @__PURE__ */ React.createElement("option", { value: "qty-asc" }, "Qty \u2191"), /* @__PURE__ */ React.createElement("option", { value: "qty-desc" }, "Qty \u2193"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#444", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, marginRight: 4 } }, "Category"), categoryIndex.map((cat) => {
+    const active = filterCat === cat;
+    const count = cat === "All" ? items.length : items.filter((i) => i.category === cat).length;
+    return /* @__PURE__ */ React.createElement("button", { key: cat, onClick: () => setFilterCat(cat), style: __spreadProps(__spreadValues({}, btnStyle), {
+      padding: "5px 13px",
+      fontSize: 12,
+      borderRadius: 99,
+      background: active ? activeColor : "#ffffff0a",
+      color: active ? "#fff" : "#666",
+      border: `1px solid ${active ? activeColor : "#ffffff15"}`,
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      boxShadow: active ? `0 2px 12px ${activeColor}44` : "none"
+    }) }, cat, /* @__PURE__ */ React.createElement("span", { style: {
+      background: active ? "#ffffff33" : "#ffffff0f",
+      borderRadius: 99,
+      padding: "1px 6px",
+      fontSize: 10,
+      fontFamily: "monospace",
+      fontWeight: 700
+    } }, count));
+  }))), /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1e3, margin: "20px auto 60px", padding: "0 32px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 } }, visible.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1/-1", textAlign: "center", padding: 60, color: "#444" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 40 } }, "\u{1F4E6}"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12, fontFamily: "monospace" } }, "No items found")), visible.map((item) => {
+    const locQty = getLocQty(item, activeLocTab);
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        key: item.id,
+        style: {
+          background: "#ffffff07",
+          border: `1px solid ${activeColor}22`,
+          borderRadius: 24,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          transition: "border-color 0.2s, transform 0.15s"
+        },
+        onMouseEnter: (e) => {
+          e.currentTarget.style.borderColor = activeColor + "55";
+          e.currentTarget.style.transform = "translateY(-3px)";
+        },
+        onMouseLeave: (e) => {
+          e.currentTarget.style.borderColor = activeColor + "22";
+          e.currentTarget.style.transform = "translateY(0)";
+        }
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { width: "100%", background: "linear-gradient(135deg,#1e1e3a,#2a1a4a)", display: "flex", alignItems: "center", justifyContent: "center", minHeight: item.image ? 0 : 200 } }, item.image ? /* @__PURE__ */ React.createElement("img", { src: item.image, alt: "", style: { width: "100%", height: "auto", display: "block" } }) : /* @__PURE__ */ React.createElement("span", { style: { fontSize: 56 } }, "\u{1F4E6}")),
+      /* @__PURE__ */ React.createElement("div", { style: { padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14, flex: 1 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, fontSize: 17, marginBottom: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, item.name), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#555", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 8 } }, item.category), /* @__PURE__ */ React.createElement(QuantityBadge, { qty: locQty, low: item.low })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, background: activeColor + "0d", border: `1px solid ${activeColor}22`, borderRadius: 14, padding: "10px 14px" } }, /* @__PURE__ */ React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: activeColor, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { flex: 1, fontSize: 13, color: "#bbb" } }, activeLoc.name), /* @__PURE__ */ React.createElement("button", { onClick: () => adjust(item.id, activeLocTab, -1), style: { width: 32, height: 32, borderRadius: 9, border: `1px solid ${activeColor}33`, background: activeColor + "11", color: activeColor, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" } }, "\u2212"), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "monospace", fontWeight: 700, fontSize: 20, minWidth: 36, textAlign: "center" } }, locQty), /* @__PURE__ */ React.createElement("button", { onClick: () => adjust(item.id, activeLocTab, 1), style: { width: 32, height: 32, borderRadius: 9, border: `1px solid ${activeColor}33`, background: activeColor + "11", color: activeColor, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" } }, "+")), locations.filter((l) => l.id !== activeLocTab).map((loc) => /* @__PURE__ */ React.createElement("div", { key: loc.id, style: { display: "flex", alignItems: "center", gap: 8, opacity: 0.4 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 6, height: 6, borderRadius: "50%", background: LOC_COLORS[loc.id] || "#aaa", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: "#777", flex: 1 } }, loc.name), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "monospace", fontSize: 12, color: "#777" } }, getLocQty(item, loc.id)))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setTransferItem(item), style: __spreadProps(__spreadValues({}, btnStyle), { flex: 2, background: "#f59e0b11", color: "#f59e0b", padding: "9px", fontSize: 12, border: "1px solid #f59e0b33", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }) }, /* @__PURE__ */ React.createElement("svg", { width: "13", height: "13", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("path", { d: "M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" })), "Transfer"), /* @__PURE__ */ React.createElement("button", { onClick: () => setModal(item), style: __spreadProps(__spreadValues({}, btnStyle), { flex: 1, background: "#ffffff0a", color: "#aaa", padding: "9px", fontSize: 12, border: "1px solid #ffffff18" }) }, "Edit"), /* @__PURE__ */ React.createElement("button", { onClick: () => del(item.id), style: __spreadProps(__spreadValues({}, btnStyle), { background: "#ff3b3011", color: "#ff3b30", padding: "9px 14px", fontSize: 12, border: "1px solid #ff3b3033" }) }, /* @__PURE__ */ React.createElement("svg", { width: "13", height: "13", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("polyline", { points: "3 6 5 6 21 6" }), /* @__PURE__ */ React.createElement("path", { d: "M19 6l-1 14H6L5 6" }), /* @__PURE__ */ React.createElement("path", { d: "M10 11v6M14 11v6" })))))
+    );
+  }))), modal && /* @__PURE__ */ React.createElement(ItemModal, { item: modal === "new" ? null : modal, locations, onSave: save, onClose: () => setModal(null) }), transferItem && /* @__PURE__ */ React.createElement(TransferModal, { key: activeLocTab, item: transferItem, locations, defaultFrom: activeLocTab, onTransfer: transfer, onClose: () => setTransferItem(null) }));
+}
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>

@@ -540,36 +540,42 @@ function App() {
   useEffect(() => {
     if (!db) return;
     const unsubs = [];
-    db.collection("items").get().then((initial) => {
-      if (initial.empty) {
+    const sentinelRef = db.collection("_meta").doc("seeded");
+    sentinelRef.get().then((sentinel) => {
+      const startListeners = () => {
+        unsubs.push(db.collection("items").onSnapshot((snap) => {
+          setItems(snap.docs.map((d) => {
+            const data = d.data();
+            delete data._docId;
+            return data;
+          }));
+          setSynced(true);
+        }));
+        unsubs.push(db.collection("locations").onSnapshot((snap) => {
+          if (!snap.empty) setLocations(snap.docs.map((d) => {
+            const data = d.data();
+            delete data._docId;
+            return data;
+          }));
+        }));
+        unsubs.push(db.collection("transferLog").orderBy("timestamp", "asc").onSnapshot((snap) => {
+          setTransferLog(snap.docs.map((d) => {
+            const data = d.data();
+            delete data._docId;
+            return data;
+          }));
+        }));
+      };
+      if (sentinel.exists) {
+        startListeners();
+      } else {
         const batch = db.batch();
         initialItems.forEach((item) => batch.set(db.collection("items").doc(String(item.id)), item));
         initialLocations.forEach((loc) => batch.set(db.collection("locations").doc(loc.id), loc));
-        batch.commit();
+        batch.set(sentinelRef, { seededAt: Date.now() });
+        batch.commit().then(startListeners);
       }
-      unsubs.push(db.collection("items").onSnapshot((snap) => {
-        setItems(snap.docs.map((d) => {
-          const data = d.data();
-          delete data._docId;
-          return data;
-        }));
-        setSynced(true);
-      }));
     });
-    unsubs.push(db.collection("locations").onSnapshot((snap) => {
-      if (!snap.empty) setLocations(snap.docs.map((d) => {
-        const data = d.data();
-        delete data._docId;
-        return data;
-      }));
-    }));
-    unsubs.push(db.collection("transferLog").orderBy("timestamp", "asc").onSnapshot((snap) => {
-      setTransferLog(snap.docs.map((d) => {
-        const data = d.data();
-        delete data._docId;
-        return data;
-      }));
-    }));
     return () => unsubs.forEach((u) => u());
   }, [db]);
   const fsItem = (item) => {

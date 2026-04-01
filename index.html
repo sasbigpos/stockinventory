@@ -309,7 +309,7 @@ function TransferLogView({ log, locations, items, onClear }) {
     setDtTo("");
   }, style: __spreadProps(__spreadValues({}, btnStyle), { padding: "5px 10px", fontSize: 11, background: "#ffffff0a", color: "#666", border: "1px solid #ffffff15", borderRadius: 8 }) }, "Reset"), dtFrom && dtTo && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#555", fontFamily: "monospace", marginLeft: 4 } }, Math.round((new Date(dtTo) - new Date(dtFrom)) / 36e5 * 10) / 10, "h window"))), filtered.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "48px 0", color: "#444" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 10 } }, "\u{1F50D}"), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "monospace", fontSize: 13 } }, "No transfers in this range")) : /* @__PURE__ */ React.createElement("div", { style: { border: "1px solid #ffffff0e", borderRadius: 20, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "2fr 1fr 2.5fr 1fr 1.8fr", gap: 16, padding: "12px 20px", background: "#ffffff05", borderBottom: "1px solid #ffffff0e" } }, ["Item", "Type", "Detail", "Change", "Date & Time"].map((h) => /* @__PURE__ */ React.createElement("div", { key: h, style: { fontSize: 11, color: "#444", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8 } }, h))), filtered.map((entry, i) => {
     var _a, _b, _c, _d, _e;
-    const item = items.find((it) => it.id === entry.itemId);
+    const item = items.find((it) => String(it.id) === String(entry.itemId));
     const isAdjust = entry.type === "adjust" || !entry.from && !entry.to;
     const isAdd = isAdjust && entry.delta > 0;
     const entryColor = isAdjust ? isAdd ? "#34c759" : "#ff3b30" : "#f59e0b";
@@ -574,12 +574,14 @@ function App() {
         });
         if (locs.length > 0) setLocations(locs);
       }));
-      unsubs.push(db.collection("transferLog").orderBy("timestamp", "asc").onSnapshot((snap) => {
-        setTransferLog(snap.docs.map((d) => {
+      unsubs.push(db.collection("transferLog").onSnapshot((snap) => {
+        const entries = snap.docs.map((d) => {
           const data = d.data();
           delete data._docId;
           return data;
-        }));
+        });
+        entries.sort((a, b) => a.timestamp - b.timestamp);
+        setTransferLog(entries);
       }));
     }).catch((err) => console.error("Firestore init error:", err));
     return () => unsubs.forEach((u) => u());
@@ -596,9 +598,7 @@ function App() {
     db.collection("locations").doc(loc.id).set(d);
   };
   const fsAddLog = (entry) => {
-    const d = __spreadValues({}, entry);
-    delete d.id;
-    db.collection("transferLog").add(d);
+    db.collection("transferLog").add(__spreadValues({}, entry));
   };
   const fsClearLog = () => db.collection("transferLog").get().then((s) => {
     const b = db.batch();
@@ -616,23 +616,23 @@ function App() {
     fsItem(form);
     setModal(null);
   };
-  const del = (id) => fsDelItem(id);
+  const del = (id) => fsDelItem(String(id));
   const adjust = (id, locId, delta) => {
     var _a, _b;
-    const item = items.find((i) => i.id === id);
+    const item = items.find((i) => String(i.id) === String(id));
     if (!item) return;
     const newQty = Math.max(0, ((_a = item.stock[locId]) != null ? _a : 0) + delta);
     const actualDelta = newQty - ((_b = item.stock[locId]) != null ? _b : 0);
     if (actualDelta === 0) return;
     fsItem(__spreadProps(__spreadValues({}, item), { stock: __spreadProps(__spreadValues({}, item.stock), { [locId]: newQty }) }));
-    fsAddLog({ id: nextLogId.current++, type: "adjust", itemId: id, locId, delta: actualDelta, timestamp: Date.now() });
+    fsAddLog({ type: "adjust", itemId: String(id), locId, delta: actualDelta, timestamp: Date.now() });
   };
   const transfer = (itemId, from, to, qty) => {
     var _a, _b;
-    const item = items.find((i) => i.id === itemId);
+    const item = items.find((i) => String(i.id) === String(itemId));
     if (!item) return;
     fsItem(__spreadProps(__spreadValues({}, item), { stock: __spreadProps(__spreadValues({}, item.stock), { [from]: ((_a = item.stock[from]) != null ? _a : 0) - qty, [to]: ((_b = item.stock[to]) != null ? _b : 0) + qty }) }));
-    fsAddLog({ id: nextLogId.current++, type: "transfer", itemId, from, to, qty, timestamp: Date.now() });
+    fsAddLog({ type: "transfer", itemId: String(itemId), from, to, qty, timestamp: Date.now() });
     setTransferItem(null);
   };
   const resetAllStock = () => {

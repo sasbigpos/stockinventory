@@ -503,7 +503,7 @@ function App() {
   const [db, setDb] = useState(null);
   const [dbReady, setDbReady] = useState(false);
   const [items, setItems] = useState([]);
-  const [locations, setLocations] = useState(initialLocations);
+  const [locations, setLocations] = useState([]);
   const [transferLog, setTransferLog] = useState([]);
   const [synced, setSynced] = useState(false);
   const [activeLocTab, setActiveLocTab] = useState("A");
@@ -541,41 +541,42 @@ function App() {
     if (!db) return;
     const unsubs = [];
     const sentinelRef = db.collection("_meta").doc("seeded");
-    sentinelRef.get().then((sentinel) => {
-      const startListeners = () => {
-        unsubs.push(db.collection("items").onSnapshot((snap) => {
-          setItems(snap.docs.map((d) => {
-            const data = d.data();
-            delete data._docId;
-            return data;
-          }));
-          setSynced(true);
-        }));
-        unsubs.push(db.collection("locations").onSnapshot((snap) => {
-          if (!snap.empty) setLocations(snap.docs.map((d) => {
-            const data = d.data();
-            delete data._docId;
-            return data;
-          }));
-        }));
-        unsubs.push(db.collection("transferLog").orderBy("timestamp", "asc").onSnapshot((snap) => {
-          setTransferLog(snap.docs.map((d) => {
-            const data = d.data();
-            delete data._docId;
-            return data;
-          }));
-        }));
-      };
-      if (sentinel.exists) {
-        startListeners();
-      } else {
-        const batch = db.batch();
-        initialItems.forEach((item) => batch.set(db.collection("items").doc(String(item.id)), item));
-        initialLocations.forEach((loc) => batch.set(db.collection("locations").doc(loc.id), loc));
-        batch.set(sentinelRef, { seededAt: Date.now() });
-        batch.commit().then(startListeners);
+    db.runTransaction(async (tx) => {
+      const sentinel = await tx.get(sentinelRef);
+      if (!sentinel.exists) {
+        tx.set(sentinelRef, { seededAt: Date.now() });
+        initialItems.forEach(
+          (item) => tx.set(db.collection("items").doc(String(item.id)), item)
+        );
+        initialLocations.forEach(
+          (loc) => tx.set(db.collection("locations").doc(loc.id), loc)
+        );
       }
-    });
+    }).then(() => {
+      unsubs.push(db.collection("items").onSnapshot((snap) => {
+        setItems(snap.docs.map((d) => {
+          const data = d.data();
+          delete data._docId;
+          return data;
+        }));
+        setSynced(true);
+      }));
+      unsubs.push(db.collection("locations").onSnapshot((snap) => {
+        const locs = snap.docs.map((d) => {
+          const data = d.data();
+          delete data._docId;
+          return data;
+        });
+        if (locs.length > 0) setLocations(locs);
+      }));
+      unsubs.push(db.collection("transferLog").orderBy("timestamp", "asc").onSnapshot((snap) => {
+        setTransferLog(snap.docs.map((d) => {
+          const data = d.data();
+          delete data._docId;
+          return data;
+        }));
+      }));
+    }).catch((err) => console.error("Firestore init error:", err));
     return () => unsubs.forEach((u) => u());
   }, [db]);
   const fsItem = (item) => {
@@ -600,7 +601,7 @@ function App() {
     b.commit();
   });
   if (!dbReady) return /* @__PURE__ */ React.createElement("div", { style: { minHeight: "100vh", background: "#0a0a18", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif", color: "#f0ede8" } }, /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 12 } }, "\u{1F4E6}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: "#555" } }, "Connecting to database\u2026")));
-  if (!synced) return /* @__PURE__ */ React.createElement("div", { style: { minHeight: "100vh", background: "#0a0a18", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif", color: "#f0ede8" } }, /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 12 } }, "\u{1F4E6}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: "#555" } }, "Loading inventory\u2026")));
+  if (!synced || locations.length === 0) return /* @__PURE__ */ React.createElement("div", { style: { minHeight: "100vh", background: "#0a0a18", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif", color: "#f0ede8" } }, /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 12 } }, "\u{1F4E6}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: "#555" } }, "Loading inventory\u2026")));
   const renameLocation = (id, name) => {
     const loc = locations.find((l) => l.id === id);
     if (loc) fsLocation(__spreadProps(__spreadValues({}, loc), { name }));

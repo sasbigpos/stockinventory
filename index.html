@@ -436,35 +436,26 @@ function ReportView({ log, locations, items }) {
   const dtInputStyle = __spreadProps(__spreadValues({}, inputStyle), { width: "auto", padding: "6px 10px", fontSize: 12, colorScheme: "dark" });
   const buildCSV = () => {
     const rows = [];
-    rows.push(["Item", "Category", "From", "To", "Transfers", "Units Moved", "% of Total"]);
-    reportRows.forEach((row) => {
-      const item = items.find((it) => String(it.id) === String(row.itemId));
-      const pct = grandTotal > 0 ? (row.totalQty / grandTotal * 100).toFixed(1) : "0.0";
-      row.directions.forEach((dir, i) => {
-        var _a, _b, _c, _d;
-        const fromLoc = locations.find((l) => l.id === dir.from);
-        const toLoc = locations.find((l) => l.id === dir.to);
-        rows.push([
-          i === 0 ? (_a = item == null ? void 0 : item.name) != null ? _a : `Item #${row.itemId}` : "",
-          i === 0 ? (_b = item == null ? void 0 : item.category) != null ? _b : "" : "",
-          (_c = fromLoc == null ? void 0 : fromLoc.name) != null ? _c : dir.from,
-          (_d = toLoc == null ? void 0 : toLoc.name) != null ? _d : dir.to,
-          dir.count,
-          dir.qty,
-          i === 0 ? `${pct}%` : ""
-        ]);
-      });
-      if (row.directions.length > 1) {
-        const pct2 = grandTotal > 0 ? (row.totalQty / grandTotal * 100).toFixed(1) : "0.0";
-        rows.push(["", "", "", "SUBTOTAL", row.directions.reduce((s, d) => s + d.count, 0), row.totalQty, `${pct2}%`]);
-      }
+    rows.push(["Date", "Time", "Item", "Category", "Type", "From", "To", "Units"]);
+    [...filteredLog].sort((a, b) => b.timestamp - a.timestamp).forEach((entry) => {
+      var _a, _b, _c, _d;
+      const item = items.find((it) => String(it.id) === String(entry.itemId));
+      const isAdjust = entry.type === "adjust" || !entry.from && !entry.to;
+      const fromLoc = isAdjust ? locations.find((l) => l.id === entry.locId) : locations.find((l) => l.id === entry.from);
+      const toLoc = isAdjust ? null : locations.find((l) => l.id === entry.to);
+      const date = new Date(entry.timestamp);
+      rows.push([
+        date.toLocaleDateString(void 0, { year: "numeric", month: "2-digit", day: "2-digit" }),
+        date.toLocaleTimeString(void 0, { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        (_a = item == null ? void 0 : item.name) != null ? _a : `Item #${entry.itemId}`,
+        (_b = item == null ? void 0 : item.category) != null ? _b : "",
+        isAdjust ? entry.delta > 0 ? "Added" : "Removed" : "Transfer",
+        (_c = fromLoc == null ? void 0 : fromLoc.name) != null ? _c : entry.locId || entry.from || "",
+        (_d = toLoc == null ? void 0 : toLoc.name) != null ? _d : isAdjust ? "" : entry.to || "",
+        isAdjust ? Math.abs(entry.delta || 0) : entry.qty || 0
+      ]);
     });
-    rows.push([]);
-    rows.push(["GRAND TOTAL", "", "", "", filteredLog.length, grandTotal, "100%"]);
-    rows.push([]);
-    rows.push(["Report period", dtFrom ? new Date(dtFrom).toLocaleString() : "All time", dtTo ? new Date(dtTo).toLocaleString() : ""]);
-    rows.push(["Generated", (/* @__PURE__ */ new Date()).toLocaleString()]);
-    return rows.map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    return rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
   };
   const exportCSV = () => {
     const csv = buildCSV();

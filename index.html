@@ -294,11 +294,11 @@ function TransferLogView({ log, locations, items, onClear }) {
         isAdjust ? entry.delta > 0 ? "Added" : "Removed" : "Transfer",
         (_c = fromLoc == null ? void 0 : fromLoc.name) != null ? _c : entry.locId || entry.from || "",
         (_d = toLoc == null ? void 0 : toLoc.name) != null ? _d : isAdjust ? "" : entry.to || "",
-        isAdjust ? entry.delta > 0 ? "+" + entry.delta : entry.delta : "\xD7" + entry.qty
+        isAdjust ? entry.delta > 0 ? "+" + entry.delta : entry.delta : entry.qty
       ]);
     });
     const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -459,7 +459,7 @@ function ReportView({ log, locations, items }) {
   };
   const exportCSV = () => {
     const csv = buildCSV();
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
